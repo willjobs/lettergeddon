@@ -69,14 +69,17 @@ contents with move history.
 tiles, drop hit-testing, cancellation, and internal edge panning. Touch placement
 uses dragging; keyboard users can focus a tile and enter a board coordinate.
 
-`src/storage/game-store.ts` serializes IndexedDB writes. It validates schema and
+`src/storage/game-store.ts` serializes IndexedDB writes and uses an atomic revision
+check to reject stale writes from another tab. Conflicted tabs lock their private
+UI until reloaded and can export their unsaved draft. It validates schema and
 inventory on load, preserves damaged data for export, and reports storage errors
 without resetting a game. Results and handoff phases are persisted. Reloading an
 exposed playing phase returns to handoff before showing private tiles.
 
 The production build precaches all assets and the entire dictionary. Cache
 versions derive from built content. A new worker waits until the previous app is
-closed, avoiding mixed-version assets in an active game. Static cache matching
+closed, avoiding mixed-version assets in an active game. Precache requests bypass fresh HTTP caches so updates never mix an old document
+with new hashed assets. Static cache matching
 ignores `Vary` so module requests work offline on servers that add `Vary: Origin`.
 
 ## Verification
@@ -92,11 +95,15 @@ Unit tests cover expiration, atomic validation, recovery, exchange ordering,
 scoring, blanks, conventional endings, elimination, and save validation.
 Playwright covers mouse and touch dragging, keyboard placement, zoom edge panning,
 results and handoff privacy, persistence, offline reload and word submission,
-damaged saves, full game flow, and fresh/occupied board layouts at all six planned
+damaged saves, cross-tab conflicts, two-version offline updates, full game flow,
+keyboard focus, blank edits, undo, setup reachability, and fresh/occupied board layouts at all six planned
 viewport sizes. Captures are in `docs/game-*.png`.
 
 **Release limitation:** a physical iPhone Safari test still needs to be performed.
 Chromium mobile emulation does not establish physical Safari compatibility.
+
+The independent review and implemented fixes are recorded in
+[docs/review-notes.md](docs/review-notes.md).
 
 ## GitHub Pages
 

@@ -297,6 +297,13 @@ button.wide:not(:has(span)) {
   width: 100%;
   margin: auto;
 }
+.setup-layout {
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+  align-items: start;
+  overscroll-behavior: contain;
+}
 .home-story h2,
 .setup-intro h2 {
   font-size: clamp(54px, 7vw, 104px);
@@ -580,7 +587,7 @@ button.wide:not(:has(span)) {
 }
 .cell.bonus-DL {
   background: #84aeb0;
-  color: #fff7dc;
+  color: #0a291e;
 }
 .cell.bonus-TL {
   background: #245c51;
@@ -588,7 +595,7 @@ button.wide:not(:has(span)) {
 }
 .cell.bonus-DW {
   background: #cc8d20;
-  color: #fff7e0;
+  color: #0a291e;
 }
 .cell.bonus-TW {
   background: #aa3d14;
@@ -616,6 +623,17 @@ button.wide:not(:has(span)) {
 .is-enlarged .column-labels,
 .is-enlarged .row-labels {
   font-size: 14px;
+  background: #efe1c5;
+}
+.is-enlarged .column-labels {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+.is-enlarged .row-labels {
+  position: sticky;
+  left: 0;
+  z-index: 3;
 }
 .is-enlarged .cell {
   font-size: 14px;
@@ -937,6 +955,7 @@ button.wide:not(:has(span)) {
 }
 .flow-card h2 {
   margin: 15px 0 22px;
+  overflow-wrap: anywhere;
 }
 .flow-card p {
   color: #756044;

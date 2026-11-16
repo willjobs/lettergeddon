@@ -82,35 +82,56 @@ describe("inventory and turn lifetime", () => {
     expect(tiles(3).filter((t) => t.letter === "E")).toHaveLength(12);
     expect(g.players.every((p) => p.rack.length === 7)).toBe(true);
   });
-  it.each([2, 3, 5, 6])(
+  it.each([2, 3, 4, 5, 6])(
     "expires after %i owner turns and never on the other turn",
     (life) => {
-      let g = fixture("CATREIS", life);
-      const initial = g.players[0].rack.map((s) => s.tile!.id);
-      for (let i = 0; i < life; i++) {
-        if (g.ending) break;
-        const opponent = structuredClone(g.players[1].rack);
-        g = pass(g);
-        expect(g.players[1].rack).toEqual(opponent);
-        if (i === life - 1) {
-          expect(capacity(g, 0)).toBe(0);
-          expect(g.ending?.reason).toBe("elimination");
-          break;
+      let game = fixture("CATREIS", life);
+      const initial = game.players[0].rack.map((slot) => slot.tile!.id);
+      const repeatedAs = new Set(
+        Array.from({ length: 15 }, (_, i) => "A".repeat(i + 1)),
+      );
+      for (let ownerTurn = 1; ownerTurn <= life; ownerTurn++) {
+        expect(game.ending).toBeNull();
+        expect(game.active).toBe(0);
+        const opponent = structuredClone(game.players[1].rack);
+        game = pass(game);
+        expect(game.players[1].rack).toEqual(opponent);
+        assertInvariants(game);
+        if (ownerTurn === life) {
+          expect(capacity(game, 0)).toBe(0);
+          expect(game.ending?.reason).toBe("elimination");
+          expect(game.ending?.winner).toBe(1);
+        } else {
+          expect(game.ending).toBeNull();
+          expect(
+            game.players[0].rack.every(
+              (slot) => slot.tile?.remainingTurns === life - ownerTurn,
+            ),
+          ).toBe(true);
+          const retained = structuredClone(game.players[0].rack);
+          game = next(game);
+          // The fixture gives player 2 seven As. Its scoring moves reset the
+          // scoreless counter naturally so long lifespans are tested in valid games.
+          const as = game.players[1].rack.flatMap((slot) =>
+            slot.tile?.letter === "A" ? [slot.tile] : [],
+          );
+          const positions = ownerTurn === 1 ? [112, 113] : [112 + ownerTurn];
+          for (const [index, at] of positions.entries())
+            game = applyAction(game, {
+              type: "stage",
+              placement: { id: as[index].id, at },
+            });
+          game = applyAction(game, { type: "play" }, repeatedAs);
+          expect(game.lastResult!.points).toBeGreaterThan(0);
+          expect(game.players[0].rack).toEqual(retained);
+          assertInvariants(game);
+          game = next(game);
         }
-        expect(g.players[0].rack[0].tile?.remainingTurns).toBe(life - i - 1);
-        g = next(g);
-        g = applyAction(g, {
-          type: "exchange",
-          ids: g.players[1].rack.map((s) => s.tile!.id),
-        });
-        g = next(g);
-        // Positive moves normally reset this; prevent stall while testing the 5/6-turn timer in isolation.
-        g.scoreless = 0;
       }
-      if (life <= 3)
-        expect(g.exploded.map((t) => t.id)).toEqual(
-          expect.arrayContaining(initial),
-        );
+      expect(game.history).toHaveLength(life * 2 - 1);
+      expect(game.exploded.map((tile) => tile.id)).toEqual(
+        expect.arrayContaining(initial),
+      );
     },
   );
   it("ages retained tiles, leaves played tiles safe, gives fresh draws full life", () => {
@@ -433,5 +454,63 @@ describe("standard placement and scores", () => {
       mutate(damaged);
       expect(() => restoreGame(damaged)).toThrow(/Export/);
     }
+  });
+});
+
+describe("restored endgame integrity", () => {
+  function eliminatedGame() {
+    let game = fixture("CATREIS", 2);
+    for (let turn = 0; turn < 3; turn++) {
+      game = pass(game);
+      if (turn < 2) game = next(game);
+    }
+    return game;
+  }
+  function stalledGame(letters = "AT") {
+    let game = emptyBag(fixture(letters, 6));
+    for (let turn = 0; turn < 6; turn++) {
+      game = pass(game);
+      if (turn < 5) game = next(game);
+    }
+    return game;
+  }
+  it("restores genuine elimination, rack-out, and stalled endings", () => {
+    for (const game of [
+      eliminatedGame(),
+      play(emptyBag(fixture("AT")), "AT"),
+      stalledGame(),
+      stalledGame("EEEEEEE"),
+    ])
+      expect(restoreGame(game)).toEqual(game);
+  });
+  it("rejects a flipped elimination winner and false elimination of intact racks", () => {
+    const eliminated = eliminatedGame();
+    eliminated.ending!.winner = 0;
+    expect(() => restoreGame(eliminated)).toThrow(/Export/);
+    const fresh = fixture();
+    fresh.phase = "game-over";
+    fresh.ending = { reason: "elimination", winner: 1, adjustments: [0, 0] };
+    expect(() => restoreGame(fresh)).toThrow(/Export/);
+  });
+  it("recomputes conventional winners and rack penalties rather than trusting saved totals", () => {
+    for (const game of [play(emptyBag(fixture("AT")), "AT"), stalledGame()]) {
+      const winner = structuredClone(game);
+      winner.ending!.winner = winner.ending!.winner === 0 ? 1 : 0;
+      expect(() => restoreGame(winner)).toThrow(/Export/);
+      const penalties = structuredClone(game);
+      penalties.ending!.adjustments[0]++;
+      penalties.players[0].score++;
+      penalties.lastResult!.scores[0]++;
+      expect(() => restoreGame(penalties)).toThrow(/Export/);
+    }
+  });
+  it("rejects missing endings and a false stalled ending before six scoreless turns", () => {
+    const eliminated = eliminatedGame();
+    eliminated.ending = null;
+    eliminated.phase = "handoff";
+    expect(() => restoreGame(eliminated)).toThrow(/Export/);
+    const stalled = pass(fixture("CATREIS", 6));
+    stalled.ending = { reason: "stalled", winner: null, adjustments: [0, 0] };
+    expect(() => restoreGame(stalled)).toThrow(/Export/);
   });
 });

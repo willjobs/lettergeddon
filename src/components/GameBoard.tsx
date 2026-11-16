@@ -69,6 +69,7 @@ export function GameBoard({
                     key={at}
                     data-board-square={at}
                     data-testid={`cell-${at}`}
+                    data-tile-id={tile?.id}
                     draggable={false}
                     tabIndex={p ? 0 : -1}
                     aria-label={`${coord(at)}, ${tile ? `${face(tile)}, ${tile.value} points${p ? ", staged" : ""}` : `empty${premium ? ", " + premium : ""}`}`}

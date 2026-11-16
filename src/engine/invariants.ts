@@ -1,4 +1,4 @@
-import type { Game } from "./types.ts";
+import type { Ending, Game } from "./types.ts";
 import { tiles } from "./tiles.ts";
 function check(condition: unknown, message: string): asserts condition {
   if (!condition) throw Error(`Invalid game: ${message}`);
@@ -176,6 +176,11 @@ export function assertInvariants(game: Game): void {
       "capacity result",
     );
     scores[move.player] += move.points;
+    if (i < game.history.length - 1 || !game.ending)
+      check(
+        move.scores.every((score, player) => score === scores[player]),
+        "historical scores",
+      );
     scoreless = move.points === 0 ? scoreless + 1 : 0;
     for (const p of move.placements) {
       check(
@@ -189,19 +194,68 @@ export function assertInvariants(game: Game): void {
       reconstructed[p.at] = p.tile;
     }
   }
-  if (game.ending) {
+  const capacities = game.players.map(
+    (player) => player.rack.filter((slot) => !slot.destroyed).length,
+  );
+  const rackValues = game.players.map((player) =>
+    player.rack.reduce((sum, slot) => sum + (slot.tile?.value ?? 0), 0),
+  );
+  const last = game.history.at(-1);
+  let expectedReason: Ending["reason"] | null = null;
+  if (last) {
     check(
-      ["elimination", "rack-out", "stalled"].includes(game.ending.reason) &&
-        [0, 1, null].includes(game.ending.winner),
-      "ending",
+      last.capacityAfter === capacities[last.player],
+      "current rack capacity",
     );
-    check(
-      game.ending.adjustments.length === 2 &&
-        game.ending.adjustments.every(Number.isInteger),
-      "score adjustments",
-    );
-    game.ending.adjustments.forEach((n, i) => (scores[i] += n));
+    if (capacities[last.player] === 0) expectedReason = "elimination";
+    else if (
+      last.kind === "play" &&
+      game.bag.length === 0 &&
+      !game.players[last.player].rack.some((slot) => slot.tile)
+    )
+      expectedReason = "rack-out";
+    else if (game.scoreless === 6) expectedReason = "stalled";
   }
+  check(
+    (game.ending?.reason ?? null) === expectedReason,
+    "terminal conditions",
+  );
+  if (game.ending && last) {
+    check(capacities[1 - last.player] > 0, "inactive player eliminated");
+    const adjustments =
+      expectedReason === "elimination"
+        ? [0, 0]
+        : rackValues.map((value) => -value);
+    if (expectedReason === "rack-out")
+      adjustments[last.player] += rackValues[1 - last.player];
+    check(
+      Array.isArray(game.ending.adjustments) &&
+        game.ending.adjustments.length === 2 &&
+        game.ending.adjustments.every(
+          (amount, player) => amount === adjustments[player],
+        ),
+      "final rack penalties",
+    );
+    adjustments.forEach((amount, player) => (scores[player] += amount));
+    const expectedWinner =
+      expectedReason === "elimination"
+        ? 1 - last.player
+        : scores[0] === scores[1]
+          ? null
+          : scores[0] > scores[1]
+            ? 0
+            : 1;
+    check(game.ending.winner === expectedWinner, "final winner");
+  } else
+    check(
+      capacities.every((count) => count > 0),
+      "nonterminal rack capacity",
+    );
+  if (last)
+    check(
+      last.scores.every((score, player) => score === scores[player]),
+      "final historical scores",
+    );
   check(
     scores.every((n, i) => n === game.players[i].score) &&
       scoreless === game.scoreless,

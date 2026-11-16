@@ -15,6 +15,7 @@ import {
   saveGame,
   readRawSave,
   downloadSave,
+  SaveConflictError,
 } from "./storage/game-store.ts";
 import { useTileDrag } from "./hooks/useTileDrag.tsx";
 import { TileFace, tileDescription } from "./components/Tile.tsx";
@@ -99,6 +100,10 @@ function Help() {
         <a href="data/DICTIONARY_LICENSE.md" target="_blank" rel="noreferrer">
           Word list & license
         </a>
+        .{" "}
+        <a href="THIRD_PARTY_NOTICES.txt" target="_blank" rel="noreferrer">
+          Code & third-party notices
+        </a>
         .
       </p>
     </div>
@@ -115,6 +120,9 @@ export default function App() {
   const [warning, setWarning] = useState("");
   const [saved, setSaved] = useState(false);
   const [saveBlocked, setSaveBlocked] = useState(false);
+  const [storageConflict, setStorageConflict] = useState(false);
+  const conflictRef = useRef(false);
+  const lastDraft = useRef<Game | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
   const [modal, setModal] = useState<
     | "help"
@@ -133,8 +141,10 @@ export default function App() {
   const [coordinate, setCoordinate] = useState("");
   const [letter, setLetter] = useState("A");
   const revision = useRef(0);
-  const undo = useRef<Placement[][]>([]);
+  const undo = useRef<Game[]>([]);
   function persist(next: Game) {
+    if (conflictRef.current) return;
+    lastDraft.current = next;
     const rev = ++revision.current;
     setSaved(false);
     void saveGame(next)
@@ -144,7 +154,20 @@ export default function App() {
           setWarning("");
         }
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
+        if (cause instanceof SaveConflictError) {
+          conflictRef.current = true;
+          setStorageConflict(true);
+          setSaved(false);
+          setGame(null);
+          setScreen("home");
+          setModal(null);
+          undo.current = [];
+          setWarning(
+            "This game changed in another tab. Reload to continue the latest saved game. You can export this tab’s unsaved draft first.",
+          );
+          return;
+        }
         if (rev === revision.current)
           setWarning(
             "Saving is unavailable. Keep this window open or export your game before leaving.",
@@ -162,7 +185,7 @@ export default function App() {
               ? { ...stored, phase: "handoff" as const }
               : stored;
           setGame(safe);
-          persist(safe);
+          setSaved(true);
         }
       })
       .catch((e: Error) => {
@@ -202,15 +225,16 @@ export default function App() {
     !game.board[at] &&
     !game.pending.some((p) => p.id !== id && p.at === at);
   function commit(action: Action) {
-    if (!game || busyRef.current) return;
+    if (!game || busyRef.current || conflictRef.current) return;
     try {
       const next = applyAction(game, action);
       if (
         action.type === "stage" ||
         action.type === "recall" ||
-        action.type === "reorder"
+        action.type === "reorder" ||
+        action.type === "shuffle"
       )
-        undo.current.push(game.pending);
+        undo.current.push(game);
       setGame(next);
       persist(next);
       setError("");
@@ -268,16 +292,17 @@ export default function App() {
     e.preventDefault();
     setKeyboardTile(tile);
     setCoordinate("");
-    setLetter("A");
+    setLetter(game?.pending.find((p) => p.id === tile.id)?.blankAs || "A");
     setModal("keyboard");
   };
   async function submit() {
-    if (!game || busyRef.current) return;
+    if (!game || busyRef.current || conflictRef.current) return;
     busyRef.current = true;
     setBusy(true);
     setError("");
     try {
       const dict = await loadDictionary();
+      if (conflictRef.current) return;
       const next = applyAction(game, { type: "play" }, dict);
       setGame(next);
       persist(next);
@@ -291,6 +316,7 @@ export default function App() {
     }
   }
   function start(names: string[], settings: Settings) {
+    if (conflictRef.current) return;
     const seed = crypto.getRandomValues(new Uint32Array(1))[0];
     const next = createGame(names, settings, seed);
     setGame(next);
@@ -303,8 +329,10 @@ export default function App() {
   }
   function undoPlacement() {
     if (!game) return;
-    const pending = undo.current.pop() ?? game.pending.slice(0, -1);
-    const next = { ...game, pending };
+    const next = undo.current.pop() ?? {
+      ...game,
+      pending: game.pending.slice(0, -1),
+    };
     setGame(next);
     persist(next);
     setError("");
@@ -315,7 +343,9 @@ export default function App() {
   };
   async function exportGame() {
     try {
-      downloadSave(game || (await readRawSave()));
+      downloadSave(
+        (storageConflict ? lastDraft.current : game) || (await readRawSave()),
+      );
     } catch {
       setError("The saved data could not be exported.");
     }
@@ -339,6 +369,11 @@ export default function App() {
       {warning && (
         <aside className="warning" role="alert">
           {warning}
+          {storageConflict && (
+            <button onClick={() => window.location.reload()}>
+              Reload latest game
+            </button>
+          )}
           <button onClick={() => void exportGame()}>Export save</button>
         </aside>
       )}
@@ -396,7 +431,7 @@ export default function App() {
             )}
             <button
               className={game ? "wide" : "primary wide"}
-              disabled={loading}
+              disabled={loading || storageConflict}
               onClick={openNew}
             >
               {loading ? "Opening the tile box…" : "New game"}{" "}
@@ -411,7 +446,7 @@ export default function App() {
             <div className="home-details">
               <span>2 PLAYERS</span>
               <span>PASS & PLAY</span>
-              <span>OFFLINE READY</span>
+              <span>NO ACCOUNTS</span>
             </div>
           </section>
         </div>
@@ -521,6 +556,7 @@ export default function App() {
                             disabled={busy}
                             draggable={false}
                             data-testid={`rack-tile-${i}`}
+                            data-tile-id={slot.tile.id}
                             className={`rack-tile ${drag.tile?.id === slot.tile.id ? "drag-origin" : ""}`}
                             aria-label={`Position ${i + 1}, ${tileDescription(slot.tile, game.settings.expirationTurns)}`}
                             onPointerDown={(e) => onDrag(e, slot.tile!)}
@@ -968,6 +1004,11 @@ export default function App() {
       {modal === "keyboard" && keyboardTile && (
         <Dialog
           title="Place a tile with the keyboard"
+          returnFocus={() =>
+            document.querySelector<HTMLElement>(
+              `[data-tile-id="${keyboardTile.id}"]`,
+            )
+          }
           onClose={() => setModal(null)}
         >
           <form
@@ -989,9 +1030,7 @@ export default function App() {
                   at,
                   ...(keyboardTile.isBlank
                     ? {
-                        blankAs:
-                          game?.pending.find((p) => p.id === keyboardTile.id)
-                            ?.blankAs || letter,
+                        blankAs: letter,
                       }
                     : {}),
                 },
