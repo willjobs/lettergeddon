@@ -1,0 +1,93 @@
+[
+  {
+    "expirationTurns": 2,
+    "recovery": false,
+    "games": 12,
+    "plays": 832,
+    "exchanges": 102,
+    "passes": 55,
+    "explosions": 154,
+    "recoveries": 0,
+    "maxTurns": 108,
+    "endings": {
+      "elimination": 10,
+      "stalled": 2
+    }
+  },
+  {
+    "expirationTurns": 2,
+    "recovery": true,
+    "games": 12,
+    "plays": 773,
+    "exchanges": 22,
+    "passes": 10,
+    "explosions": 321,
+    "recoveries": 202,
+    "maxTurns": 84,
+    "endings": {
+      "rack-out": 10,
+      "elimination": 2
+    }
+  },
+  {
+    "expirationTurns": 3,
+    "recovery": false,
+    "games": 12,
+    "plays": 896,
+    "exchanges": 98,
+    "passes": 71,
+    "explosions": 151,
+    "recoveries": 0,
+    "maxTurns": 102,
+    "endings": {
+      "elimination": 7,
+      "rack-out": 3,
+      "stalled": 2
+    }
+  },
+  {
+    "expirationTurns": 3,
+    "recovery": true,
+    "games": 12,
+    "plays": 816,
+    "exchanges": 17,
+    "passes": 8,
+    "explosions": 260,
+    "recoveries": 143,
+    "maxTurns": 75,
+    "endings": {
+      "rack-out": 12
+    }
+  },
+  {
+    "expirationTurns": 5,
+    "recovery": false,
+    "games": 12,
+    "plays": 930,
+    "exchanges": 56,
+    "passes": 47,
+    "explosions": 144,
+    "recoveries": 0,
+    "maxTurns": 109,
+    "endings": {
+      "rack-out": 9,
+      "elimination": 2,
+      "stalled": 1
+    }
+  },
+  {
+    "expirationTurns": 5,
+    "recovery": true,
+    "games": 12,
+    "plays": 870,
+    "exchanges": 14,
+    "passes": 16,
+    "explosions": 179,
+    "recoveries": 65,
+    "maxTurns": 81,
+    "endings": {
+      "rack-out": 11,
+      "stalled": 1
+    }
+  }
+]
