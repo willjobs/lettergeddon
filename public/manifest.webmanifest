@@ -1,1 +1,18 @@
-{"name":"Lettergeddon","short_name":"Lettergeddon","description":"A game of words & consequences.","start_url":"./","scope":"./","display":"standalone","background_color":"#efe1c5","theme_color":"#123e31","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "name": "Lettergeddon",
+  "short_name": "Lettergeddon",
+  "description": "A two-player word game with expiring tiles.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#efe1c5",
+  "theme_color": "#123e31",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

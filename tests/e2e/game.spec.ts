@@ -144,7 +144,9 @@ test("valid word, results, handoff privacy, refresh and reveal", async ({
   await inject(page);
   await stageCat(page);
   await page.getByRole("button", { name: "Submit word", exact: true }).click();
-  await expect(page.getByText("made")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Ada scored 10 points." }),
+  ).toBeVisible();
   await expect(page.getByText("10 points.")).toBeVisible();
   await expect(page.locator(".rack-tile")).toHaveCount(0);
   await page.getByRole("button", { name: "Pass the device" }).click();
@@ -395,7 +397,7 @@ test("new-game settings, elimination, and final results form a complete flow", a
   await page.getByLabel("Player 2", { exact: true }).fill("Ben");
   await page.locator("#lifespan").fill("2");
   await page.getByLabel("Allow rack recovery").uncheck();
-  await page.getByRole("button", { name: /Let the letters fly/ }).click();
+  await page.getByRole("button", { name: "Start game", exact: true }).click();
   await expect(page.getByText("Recovery off", { exact: true })).toBeVisible();
   await expect(page.locator(rack(0))).toHaveAttribute(
     "aria-label",
@@ -411,11 +413,13 @@ test("new-game settings, elimination, and final results form a complete flow", a
   }
   await expect(page.getByText("7", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "See final results" }).click();
-  await expect(page.getByText("takes the game.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Ben wins." })).toBeVisible();
   await expect(
     page.getByText("A rack was completely destroyed."),
   ).toBeVisible();
-  await expect(page.getByText("Ben", { exact: true })).toHaveCount(2);
+  await expect(
+    page.locator(".final-scores").getByText("Ben", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Return home" }).click();
   await expect(
     page.getByRole("button", { name: "Continue game" }),

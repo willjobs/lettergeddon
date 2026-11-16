@@ -62,25 +62,24 @@ function Help() {
         center star. Drag tiles from your rack, then submit. Enlarge the board
         for precise placement.
       </p>
-      <h3>Use them or lose them</h3>
+      <h3>Tile expiration</h3>
       <p>
         Each tile ages after its owner’s turn. The number and ring show how many
-        turns remain. When time runs out, the tile explodes and its rack slot
-        breaks permanently.
+        turns remain. At zero, the tile explodes and destroys its rack slot.
       </p>
-      <h3>Make a comeback</h3>
+      <h3>Rack recovery</h3>
       <p>
         When recovery is enabled, playing every tile you held at the start of
         your turn repairs the leftmost broken slot. Only a seven-tile play earns
         the 50-point bonus.
       </p>
-      <h3>Score the board</h3>
+      <h3>Scoring</h3>
       <p>
         DL / TL multiply a new tile’s value. DW / TW multiply its word. All new
         crosswords must be valid. Blanks can stand for any letter and score
         zero.
       </p>
-      <h3>Exchange, pass, or finish</h3>
+      <h3>Exchanges and game endings</h3>
       <p>
         Exchange requires seven tiles in the bag. Replacements get fresh timers;
         retained tiles age. Passing also ages your tiles. Losing every slot
@@ -88,7 +87,7 @@ function Help() {
         an empty bag or six scoreless turns occur. Remaining tile values are
         deducted; going out also earns your opponent’s remaining values.
       </p>
-      <h3>Keyboard play</h3>
+      <h3>Keyboard controls</h3>
       <p>
         Tab to a rack tile or staged tile and press Enter or Space. Enter a
         coordinate such as H8 to place it, or return a staged tile to the rack.
@@ -379,93 +378,77 @@ export default function App() {
       )}
       {screen === "home" && (
         <div className="home-layout">
-          <section className="home-story">
-            <p className="eyebrow">The clock is ticking on every tile.</p>
-            <h2>
-              Good words.
-              <br />
-              <em>Bad timing.</em>
-            </h2>
-            <p>
-              A game of words, nerve, and beautifully
-              <br className="desktop-break" /> terrible consequences.
+          <section className="game-menu" aria-labelledby="menu-heading">
+            <h2 id="menu-heading">A word game with expiring tiles</h2>
+            <p className="menu-description">
+              Build connected words. Unplayed tiles count down after each of
+              your turns. At zero, a tile explodes and destroys its rack slot.
             </p>
-            <div className="cover-tiles" aria-hidden="true">
-              {"WORDS".split("").map((l, i) => (
-                <div className="cover-tile" key={l}>
-                  <TileFace
-                    tile={{
-                      id: l,
-                      letter: l,
-                      value: i === 0 ? 4 : 1,
-                      isBlank: false,
-                      remainingTurns: 3 - (i % 3),
-                    }}
-                    lifespan={3}
-                  />
-                </div>
-              ))}
-            </div>
-            <p className="home-caption">
-              Two players. One board. No time to waste.
-            </p>
-          </section>
-          <section className="home-actions panel">
-            <p className="eyebrow">Gather around the board</p>
-            <h2>Shall we play?</h2>
-            <p>
-              Make a word. Beat the countdown.
-              <br />
-              Keep your rack in one piece.
-            </p>
-            {game && (
+            <div className="menu-actions">
+              {game && (
+                <button
+                  className="primary wide"
+                  onClick={() => {
+                    setScreen("game");
+                    setError("");
+                  }}
+                >
+                  Continue game
+                </button>
+              )}
               <button
-                className="primary wide"
-                onClick={() => {
-                  setScreen("game");
-                  setError("");
-                }}
+                className={game ? "wide" : "primary wide"}
+                disabled={loading || storageConflict}
+                onClick={openNew}
               >
-                Continue game <span aria-hidden="true">↗</span>
+                {loading ? "Loading saved game…" : "New game"}
               </button>
-            )}
-            <button
-              className={game ? "wide" : "primary wide"}
-              disabled={loading || storageConflict}
-              onClick={openNew}
-            >
-              {loading ? "Opening the tile box…" : "New game"}{" "}
-              <span aria-hidden="true">↗</span>
-            </button>
-            <button
-              className="text-button wide"
-              onClick={() => setModal("help")}
-            >
-              How to play
-            </button>
-            <div className="home-details">
-              <span>2 PLAYERS</span>
-              <span>PASS & PLAY</span>
-              <span>NO ACCOUNTS</span>
+              <button
+                className="text-button wide"
+                onClick={() => setModal("help")}
+              >
+                How to play
+              </button>
             </div>
+            <figure className="expiration-example">
+              <figcaption>Tile lifespan: a three-turn example</figcaption>
+              <div className="expiration-stages">
+                {[3, 2, 1].map((remainingTurns) => (
+                  <div className="expiration-stage" key={remainingTurns}>
+                    <div className="example-tile" aria-hidden="true">
+                      <TileFace
+                        tile={{
+                          id: `example-${remainingTurns}`,
+                          letter: "E",
+                          value: 1,
+                          isBlank: false,
+                          remainingTurns,
+                        }}
+                        lifespan={3}
+                      />
+                    </div>
+                    <span>
+                      {remainingTurns} {remainingTurns === 1 ? "turn" : "turns"}{" "}
+                      left
+                    </span>
+                  </div>
+                ))}
+                <div className="expiration-stage">
+                  <div className="example-tile" aria-hidden="true">
+                    <span className="broken-slot" />
+                  </div>
+                  <span>Slot destroyed</span>
+                </div>
+              </div>
+            </figure>
+            <p className="menu-note">
+              Two players sharing this device. Games save in this browser.
+            </p>
           </section>
         </div>
       )}
       {screen === "setup" && (
         <div className="setup-layout">
-          <section className="setup-intro">
-            <p className="eyebrow">Your table. Your rules.</p>
-            <h2>
-              A word to
-              <br />
-              the <em>quick.</em>
-            </h2>
-            <p>
-              Choose how long your tiles last.
-              <br />
-              Then choose your words wisely.
-            </p>
-          </section>
           <GameSetup onStart={start} onBack={() => setScreen("home")} />
         </div>
       )}
@@ -581,8 +564,8 @@ export default function App() {
               <div className="game-feedback" role="status">
                 {error ||
                   (game.pending.length
-                    ? `${game.pending.length} ${game.pending.length === 1 ? "tile" : "tiles"} ready to submit`
-                    : "Drag a tile onto the board to begin.")}
+                    ? `${game.pending.length} ${game.pending.length === 1 ? "tile" : "tiles"} placed.`
+                    : "Drag tiles onto the board.")}
               </div>
               <div className="action-toolbar">
                 <button
@@ -620,22 +603,14 @@ export default function App() {
           )}
           {game.phase === "turn-results" && last && (
             <section className="flow-card panel results">
-              <p className="eyebrow">Turn {last.turn} complete</p>
+              <p className="phase-label">Turn {last.turn} complete</p>
               <h2>
-                {game.players[last.player].name}
-                <br />
-                {last.kind === "play" ? (
-                  <>
-                    made <em>{last.points} points.</em>
-                  </>
-                ) : last.kind === "exchange" ? (
-                  <>
-                    exchanged {last.exchanged}{" "}
-                    {last.exchanged === 1 ? "tile" : "tiles"}.
-                  </>
-                ) : (
-                  <>passed this turn.</>
-                )}
+                {game.players[last.player].name}{" "}
+                {last.kind === "play"
+                  ? `scored ${last.points} points.`
+                  : last.kind === "exchange"
+                    ? `exchanged ${last.exchanged} ${last.exchanged === 1 ? "tile" : "tiles"}.`
+                    : "passed this turn."}
               </h2>
               {last.words.length > 0 && (
                 <div className="word-results">
@@ -684,7 +659,7 @@ export default function App() {
                   <b>
                     {last.capacityBefore} → {last.capacityAfter}
                   </b>
-                  <span>Rack capacity</span>
+                  <span>Rack slots</span>
                 </div>
               </div>
               <p className="total-score">
@@ -701,20 +676,8 @@ export default function App() {
           )}
           {game.phase === "handoff" && (
             <section className="flow-card handoff panel">
-              <div className="handoff-symbol" aria-hidden="true">
-                ⇄
-              </div>
-              <p className="eyebrow">A fresh pair of eyes</p>
-              <h2>
-                Over to you,
-                <br />
-                <em>{game.players[game.active].name}.</em>
-              </h2>
-              <p>
-                Take the device, then reveal your rack
-                <br />
-                when you’re ready to play.
-              </p>
+              <h2>{game.players[game.active].name}’s turn</h2>
+              <p>Pass the device before revealing the rack.</p>
               <button
                 className="primary wide"
                 onClick={() => commit({ type: "reveal" })}
@@ -725,16 +688,12 @@ export default function App() {
           )}
           {game.phase === "game-over" && game.ending && (
             <section className="flow-card panel game-over">
-              <p className="eyebrow">The dust has settled</p>
+              <p className="phase-label">Game over</p>
               <h2>
                 {game.ending.winner === null ? (
                   "It’s a tie."
                 ) : (
-                  <>
-                    {game.players[game.ending.winner].name}
-                    <br />
-                    <em>takes the game.</em>
-                  </>
+                  <>{game.players[game.ending.winner].name} wins.</>
                 )}
               </h2>
               <p>
@@ -758,7 +717,7 @@ export default function App() {
               </div>
               <dl className="game-summary">
                 <div>
-                  <dt>Best word</dt>
+                  <dt>Highest-scoring word</dt>
                   <dd>
                     {highest
                       ? `${highest.word} · ${highest.score} points`
@@ -801,26 +760,22 @@ export default function App() {
           )}
         </>
       )}
-      <footer className="app-footer">
-        <span>
-          {screen === "game"
-            ? (online ? "" : "Offline · ") +
-              (saved ? "Saved on this device" : "Saving…")
-            : "A game of words & consequences."}
-        </span>
-        <span>
-          {screen === "game" && game
-            ? `Recovery ${game.settings.recovery ? "on" : "off"}`
-            : "Made for the table."}
-        </span>
-      </footer>
+      {screen === "game" && game && (
+        <footer className="app-footer">
+          <span>
+            {(online ? "" : "Offline · ") +
+              (saved ? "Saved on this device" : "Saving…")}
+          </span>
+          <span>Recovery {game.settings.recovery ? "on" : "off"}</span>
+        </footer>
+      )}
       {modal === "help" && (
         <Dialog title="How to play" onClose={() => setModal(null)}>
           <Help />
         </Dialog>
       )}
       {modal === "more" && (
-        <Dialog title="A moment at the table" onClose={() => setModal(null)}>
+        <Dialog title="More" onClose={() => setModal(null)}>
           <div className="menu-buttons">
             <button
               disabled={!!game?.pending.length || !game || game.bag.length < 7}
@@ -840,6 +795,11 @@ export default function App() {
             >
               Pass this turn <span>→</span>
             </button>
+            {game && game.bag.length < 7 && (
+              <p className="fine-print">
+                At least 7 tiles must remain in the bag to exchange.
+              </p>
+            )}
             {!!game?.pending.length && (
               <p className="fine-print">
                 Recall your staged tiles to pass or exchange.
@@ -874,7 +834,7 @@ export default function App() {
         </Dialog>
       )}
       {modal === "history" && (
-        <Dialog title="Around the board" onClose={() => setModal(null)}>
+        <Dialog title="Game history" onClose={() => setModal(null)}>
           <ol className="history">
             {game?.history.map((m) => (
               <li key={m.turn}>
@@ -895,13 +855,13 @@ export default function App() {
               </li>
             ))}
           </ol>
-          {!game?.history.length && <p>The first word is still unwritten.</p>}
+          {!game?.history.length && <p>No turns completed yet.</p>}
           <button onClick={() => setModal("more")}>Back to More</button>
         </Dialog>
       )}
       {modal === "exchange" && (
-        <Dialog title="Trade a few letters" onClose={() => setModal(null)}>
-          <p>Select the tiles you’d like to exchange.</p>
+        <Dialog title="Exchange tiles" onClose={() => setModal(null)}>
+          <p>Select tiles to exchange.</p>
           <div className="exchange-tiles">
             {activeRack
               .flatMap((s) => (s.tile ? [s.tile] : []))
@@ -966,7 +926,7 @@ export default function App() {
       )}
       {modal === "blank" && blankPlacement && (
         <Dialog
-          title="A letter of your choosing"
+          title="Choose a letter for the blank"
           onClose={() => {
             setModal(null);
             setBlankPlacement(null);

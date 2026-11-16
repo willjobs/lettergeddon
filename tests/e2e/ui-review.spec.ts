@@ -85,20 +85,20 @@ for (const [width, height] of [
     await page.goto("/");
     await page.getByRole("button", { name: /New game/ }).click();
     await page.getByLabel("Player 1", { exact: true }).fill("Ada");
-    const start = page.getByRole("button", { name: /Let the letters fly/ });
+    const start = page.getByRole("button", { name: "Start game", exact: true });
     await start.scrollIntoViewIfNeeded();
     const measurements = await start.evaluate((button) => {
       const box = button.getBoundingClientRect();
       const footer = document
-        .querySelector(".app-footer")!
-        .getBoundingClientRect();
+        .querySelector(".app-footer")
+        ?.getBoundingClientRect();
       const centerElement = document.elementFromPoint(
         box.x + box.width / 2,
         box.y + box.height / 2,
       );
       return {
         buttonBottom: box.bottom,
-        footerTop: footer.top,
+        footerTop: footer?.top ?? innerHeight,
         centerIsButton: button.contains(centerElement),
         documentWidth: document.documentElement.scrollWidth,
       };
@@ -264,11 +264,9 @@ test("handoff wraps supported unbroken player names without horizontal scrolling
   await expect(
     page.getByRole("button", { name: "Reveal my rack" }),
   ).toBeVisible();
-  const card = await page
-    .locator(".handoff")
-    .evaluate((element) => ({
-      width: element.clientWidth,
-      scrollWidth: element.scrollWidth,
-    }));
+  const card = await page.locator(".handoff").evaluate((element) => ({
+    width: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
   expect(card.scrollWidth).toBeLessThanOrEqual(card.width);
 });

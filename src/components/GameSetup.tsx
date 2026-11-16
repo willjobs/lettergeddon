@@ -11,12 +11,7 @@ export function GameSetup({
   const [recovery, setRecovery] = useState(true);
   return (
     <section className="setup-card panel">
-      <p className="eyebrow">A little pressure. A lot of wordplay.</p>
-      <h2>Make every letter count.</h2>
-      <p>
-        Build words before your tiles break. Every turn is a chance to score—and
-        a little less time on the clock.
-      </p>
+      <h2>New game</h2>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -42,6 +37,7 @@ export function GameSetup({
         </label>
         <input
           id="lifespan"
+          aria-describedby="lifespan-help"
           type="range"
           min="2"
           max="6"
@@ -49,13 +45,19 @@ export function GameSetup({
           onChange={(e) => setLife(Number(e.target.value))}
         />
         <div className="range-labels" aria-hidden="true">
-          <span>2 · Fast & fierce</span>
-          <span>6 · Room to think</span>
+          <span>2 turns</span>
+          <span>6 turns</span>
         </div>
+        <p className="setting-help" id="lifespan-help">
+          Only your turns count toward your tiles’ lifespan.
+        </p>
         <label className="toggle-setting">
           <span>
             <strong>Allow rack recovery</strong>
-            <small>Play every tile you hold to repair one broken slot.</small>
+            <small>
+              Play every tile in your rack in one move to repair one destroyed
+              slot.
+            </small>
           </span>
           <input
             type="checkbox"
@@ -64,7 +66,7 @@ export function GameSetup({
           />
         </label>
         <button className="primary wide" type="submit">
-          Let the letters fly <span aria-hidden="true">↗</span>
+          Start game
         </button>
         <button className="text-button wide" type="button" onClick={onBack}>
           Back
