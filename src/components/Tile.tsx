@@ -12,7 +12,16 @@ export function TileFace({
   lifespan: number;
   board?: boolean;
 }) {
-  const damage = 1 - tile.remainingTurns / lifespan;
+  const progress = tile.remainingTurns / lifespan;
+  const damage = 1 - progress;
+  const ringColor =
+    tile.remainingTurns === 1
+      ? "#b83f22"
+      : progress > 0.67
+        ? "#a4bd61"
+        : progress > 0.4
+          ? "#e3ae24"
+          : "#e16c20";
   return (
     <span
       className={`tile-face ${board ? "board-tile" : ""} ${tile.isBlank ? "blank-tile" : ""} ${damage > 0 ? "aged" : ""} ${tile.remainingTurns === 1 ? "last-turn" : ""}`}
@@ -20,15 +29,18 @@ export function TileFace({
         {
           "--life": `${(tile.remainingTurns / lifespan) * 100}%`,
           "--damage": damage,
+          "--crack-opacity": damage === 0 ? 0 : 0.4 + damage * 0.6,
+          "--ring-color": ringColor,
         } as CSSProperties
       }
       aria-hidden="true"
     >
       {!board && <span className="life-ring" />}
       <span className="cracks" />
-      <span className="letter">{face(tile)}</span>
-      <sup>{tile.value}</sup>
-      {!board && <span className="turns-left">{tile.remainingTurns}</span>}
+      <span className="tile-mark">
+        <span className="letter">{face(tile)}</span>
+        <sup>{tile.value}</sup>
+      </span>
     </span>
   );
 }

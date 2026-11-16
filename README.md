@@ -68,6 +68,9 @@ contents with move history.
 `src/hooks/useTileDrag.tsx` handles mouse/touch pointer capture, finger-offset ghost
 tiles, drop hit-testing, cancellation, and internal edge panning. Touch placement
 uses dragging; keyboard users can focus a tile and enter a board coordinate.
+Tile faces reserve separate space for the letter and its point value. Rings and
+fractures show tile age; exact turns remaining are available in accessible
+descriptions without adding another visible number.
 
 `src/storage/game-store.ts` serializes IndexedDB writes and uses an atomic revision
 check to reject stale writes from another tab. Conflicted tabs lock their private
