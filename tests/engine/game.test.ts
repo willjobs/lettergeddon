@@ -410,4 +410,28 @@ describe("standard placement and scores", () => {
       expect(() => restoreGame(bad)).toThrow(/Export/);
     }
   });
+  it("rejects malformed history and missing result screens before rendering", () => {
+    const game = play(fixture(), "CAT");
+    for (const mutate of [
+      (g: Game) => {
+        g.lastResult = null;
+      },
+      (g: Game) => {
+        Reflect.set(g.history[0], "words", null);
+      },
+      (g: Game) => {
+        Reflect.set(g.history[0].words[0], "cells", "invalid");
+      },
+      (g: Game) => {
+        g.history[0].points++;
+      },
+      (g: Game) => {
+        g.active = 0;
+      },
+    ]) {
+      const damaged = structuredClone(game);
+      mutate(damaged);
+      expect(() => restoreGame(damaged)).toThrow(/Export/);
+    }
+  });
 });

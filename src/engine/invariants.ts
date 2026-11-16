@@ -29,6 +29,16 @@ export function assertInvariants(game: Game): void {
     Number.isInteger(game.turn) && game.turn === game.history.length + 1,
     "turn history",
   );
+  check(game.active === game.history.length % 2, "active player sequence");
+  check(
+    JSON.stringify(game.lastResult) ===
+      JSON.stringify(game.history.at(-1) ?? null),
+    "latest turn result",
+  );
+  check(
+    game.phase !== "turn-results" || game.lastResult,
+    "missing turn result",
+  );
   check(
     Number.isInteger(game.rng) && game.rng >= 0 && game.rng <= 4294967295,
     "random state",
@@ -102,6 +112,48 @@ export function assertInvariants(game: Game): void {
       "move sequence",
     );
     check(
+      Array.isArray(move.words) &&
+        move.words.every(
+          (word) =>
+            /^[A-Z]{2,15}$/.test(word.word) &&
+            Number.isInteger(word.score) &&
+            word.score >= 0 &&
+            Array.isArray(word.cells) &&
+            word.cells.length === word.word.length &&
+            word.cells.every(
+              (at) => Number.isInteger(at) && at >= 0 && at < 225,
+            ),
+        ),
+      "word results",
+    );
+    check(
+      Array.isArray(move.placements) &&
+        move.placements.length <= 7 &&
+        Number.isInteger(move.exchanged) &&
+        move.exchanged >= 0 &&
+        move.exchanged <= 7 &&
+        Array.isArray(move.scores) &&
+        move.scores.length === 2 &&
+        move.scores.every(Number.isInteger),
+      "turn result details",
+    );
+    check(
+      move.kind === "play"
+        ? move.placements.length > 0 &&
+            move.words.length > 0 &&
+            move.exchanged === 0 &&
+            move.points ===
+              move.words.reduce((total, word) => total + word.score, 0) +
+                (move.placements.length === 7 ? 50 : 0)
+        : move.placements.length === 0 &&
+            move.words.length === 0 &&
+            move.points === 0 &&
+            (move.kind === "exchange"
+              ? move.exchanged > 0
+              : move.exchanged === 0),
+      "turn result accounting",
+    );
+    check(
       Number.isInteger(move.points) &&
         move.points >= 0 &&
         move.exploded.every((s) => Number.isInteger(s) && s >= 0 && s < 7),
@@ -113,8 +165,14 @@ export function assertInvariants(game: Game): void {
       "recovery result",
     );
     check(
-      move.capacityAfter ===
-        move.capacityBefore - move.exploded.length + move.restored.length,
+      Number.isInteger(move.capacityBefore) &&
+        move.capacityBefore > 0 &&
+        move.capacityBefore <= 7 &&
+        Number.isInteger(move.capacityAfter) &&
+        move.capacityAfter >= 0 &&
+        move.capacityAfter <= 7 &&
+        move.capacityAfter ===
+          move.capacityBefore - move.exploded.length + move.restored.length,
       "capacity result",
     );
     scores[move.player] += move.points;
