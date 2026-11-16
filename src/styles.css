@@ -1894,3 +1894,15 @@ dialog::backdrop {
     opacity: 0;
   }
 }
+/* Large, branching fractures remain legible in a fitted phone rack. */
+.broken-slot:before {
+  content: none;
+}
+.broken-slot:after {
+  inset: 0;
+  clip-path: none;
+  transform: none;
+  opacity: 1;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cpath d='M8 0L18 17L15 29L29 35L35 60M60 8L43 19L36 17L29 35L10 46L0 44M29 35L42 40L48 60M15 29L0 20M43 19L48 0M10 46L7 60' fill='none' stroke='%23271d15' stroke-width='2.2'/%3E%3Cpath d='M10 0L20 17L17 28M31 36L37 60M44 21L58 12M43 42L47 58M9 48L2 47' fill='none' stroke='%23bd9a62' stroke-width='1.3'/%3E%3C/svg%3E")
+    center/100% 100%;
+}
